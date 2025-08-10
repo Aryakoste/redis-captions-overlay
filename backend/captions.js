@@ -97,16 +97,16 @@ export async function processLiveAudioChunk(audioBuffer, sessionId, options = {}
   }
 }
 
-export async function answerQuestion(question, context = "", useKnowledgeBase = true) {
-  return new Promise(async (resolve) => {
+export function answerQuestion(question, context = "", useKnowledgeBase = true) {
+  return new Promise(async (resolve, reject) => {
     const cacheKey = getCacheKey(question + context, 'llm');
-
+    
     try {
       const cached = await redis.get(cacheKey);
       if (cached) {
         console.log('🧠 Returning cached answer');
         const cachedResult = JSON.parse(cached);
-
+        
         if (cachedResult.qa_id) {
           try {
             await redis.json.numIncrBy(`qa:${cachedResult.qa_id}`, '$.views', 1);
@@ -114,65 +114,74 @@ export async function answerQuestion(question, context = "", useKnowledgeBase = 
             console.error('Failed to update view count:', err);
           }
         }
-
+        
         return resolve(cachedResult);
       }
-    } catch {
+    } catch (err) {
       console.log('Cache check failed for LLM, proceeding with fresh query');
     }
 
-    const safeContext =
-      context.trim() ||
-      "This is a question about accessibility, AI, or technology in general. Please provide a helpful answer based on your knowledge.";
 
-    const jobId = uuidv4();
-    const jobPayload = {
-      job_id: jobId,
+    const safeContext = context.trim() || "This is a question about accessibility, AI, or technology in general. Please provide a helpful answer based on your knowledge.";
+
+
+    const py = spawn('python', [
+      path.resolve("../python-ai/llm_qa.py"),
       question,
-      context: safeContext,
-      useKnowledgeBase: String(useKnowledgeBase)
-    };
-
-    console.log(`📤 Enqueuing LLM job ${jobId}`);
-    await redis.xAdd('llm_jobs', '*', { payload: JSON.stringify(jobPayload) });
-
-    console.log(`⏳ Waiting for LLM worker result for job ${jobId}...`);
-    const start = Date.now();
-    while (true) {
-      const results = await redis.xRead(
-        { key: 'llm_results', id: '0' },
-        { BLOCK: 5000, COUNT: 1 }
-      );
-      if (results) {
-        for (const [, messages] of results) {
-          for (const [msgId, fields] of messages) {
-            const data = JSON.parse(fields.result);
-            if (data.job_id === jobId) {
-              console.log(`✅ Got LLM result for job ${jobId} in ${(Date.now() - start) / 1000}s`);
-              
-              const enhancedResult = {
-                ...data,
-                source: 'llm',
-                confidence: data.confidence || 0.7,
-                timestamp: Date.now()
-              };
-
-              try {
-                await redis.setEx(cacheKey, 7200, JSON.stringify(enhancedResult));
-              } catch (cacheErr) {
-                console.error('Failed to cache LLM result:', cacheErr);
-              }
-
-              await redis.xDel('llm_results', msgId);
-
-              return resolve(enhancedResult);
-            }
-          }
+      safeContext
+    ]);
+    
+    let output = "";
+    let errorOutput = "";
+    
+    py.stdout.on('data', data => {
+      output += data.toString();
+    });
+    
+    py.stderr.on('data', err => {
+      errorOutput += err.toString();
+      console.error("LLM stderr:", err.toString());
+    });
+    
+    py.on('close', async (code) => {
+      try {
+        if (code !== 0) {
+          console.error(`LLM process exited with code ${code}`);
+          return resolve({ 
+            answer: "I apologize, but I'm having trouble processing your question right now. Please try again.", 
+            source: 'error',
+            confidence: 0 
+          });
         }
+
+
+        const result = JSON.parse(output.trim());
+        const enhancedResult = {
+          ...result,
+          source: 'llm',
+          confidence: result.confidence || 0.7,
+          timestamp: Date.now()
+        };
+        
+        try {
+          await redis.setEx(cacheKey, 7200, JSON.stringify(enhancedResult));
+        } catch (cacheErr) {
+          console.error('Failed to cache LLM result:', cacheErr);
+        }
+        
+        resolve(enhancedResult);
+      } catch (e) {
+        console.error('Failed to parse LLM output:', e);
+        console.error('Raw output:', output);
+        resolve({ 
+          answer: "I couldn't process your question properly. Please try rephrasing it.", 
+          source: 'error',
+          confidence: 0 
+        });
       }
-    }
+    });
   });
-}
+} 
 
 
 export async function translateText(text, targetLang = 'es') {
