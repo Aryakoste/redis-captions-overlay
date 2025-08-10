@@ -46,7 +46,6 @@ export async function transcribeAudio(audioPath, options = {}) {
           segments: result.segments || []
         };
 
-    // Cache result in Redis for 1 hour
     await redis.setEx(cacheKey, 3600, JSON.stringify(finalResult));
 
     console.log('✅ whisper.cpp transcription completed');
@@ -182,7 +181,6 @@ export function answerQuestion(question, context = "", useKnowledgeBase = true) 
     });
   });
 } 
-
 
 export async function translateText(text, targetLang = 'es') {
   const cacheKey = getCacheKey(text + targetLang, 'translate');
