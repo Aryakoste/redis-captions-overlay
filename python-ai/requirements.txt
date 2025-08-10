@@ -1,0 +1,4 @@
+openai-whisper
+torch<2.5
+transformers
+sentencepiece

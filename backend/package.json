@@ -1,0 +1,21 @@
+{
+  "name": "redis-accessibility-backend-enhanced",
+  "type": "module",
+  "version": "1.0.0",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "nodemon server.js"
+  },
+  "dependencies": {
+    "axios": "^1.6.0",
+    "body-parser": "^1.20.2",
+    "cors": "^2.8.5",
+    "express": "^4.19.2",
+    "multer": "^1.4.5-lts.1",
+    "nodejs-whisper": "^0.2.9",
+    "redis": "^4.6.7",
+    "uuid": "^9.0.0",
+    "ws": "^8.13.0"
+  }
+}
