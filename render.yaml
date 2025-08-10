@@ -1,0 +1,37 @@
+services:
+  - type: web
+    name: node-backend
+    env: node
+    plan: free
+    rootDir: backend            
+    buildCommand: "npm install"
+    startCommand: "node server.js"
+    envVars:
+      - key: REDIS_URL
+        fromService:
+          type: redis
+          name: app-redis
+          property: connectionString
+      - key: PORT
+        value: "10000"
+
+  - type: worker
+    name: python-llm-worker
+    env: python
+    plan: free
+    rootDir: python-ai          
+    buildCommand: "pip install -r requirements.txt"
+    startCommand: "python llm_worker.py"
+    envVars:
+      - key: REDIS_URL
+        fromService:
+          type: redis
+          name: app-redis
+          property: connectionString
+      - key: PYTHONUNBUFFERED
+        value: "1"
+
+databases:
+  # 3. Redis (Key Value)
+  - name: app-redis
+    plan: free
