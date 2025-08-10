@@ -14,23 +14,3 @@ services:
           property: connectionString
       - key: PORT
         value: "6379"
-
-  - type: worker
-    name: python-llm-worker
-    env: python
-    plan: free
-    rootDir: python-ai          
-    buildCommand: "pip install -r requirements.txt"
-    startCommand: "python llm_worker.py"
-    envVars:
-      - key: REDIS_URL
-        fromService:
-          type: redis
-          name: redis-instance
-          property: connectionString
-      - key: PYTHONUNBUFFERED
-        value: "1"
-
-databases:
-  - name: redis-instance
-    plan: free

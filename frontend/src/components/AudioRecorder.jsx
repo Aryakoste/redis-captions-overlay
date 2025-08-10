@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import axios from 'axios';
 
+const API_BASE_URL = import.meta.env.API_BASE_URL;
+
 const AudioRecorder = ({ sessionId = 'audio_session' }) => {
   const [recognizing, setRecognizing] = useState(false);
   const [recognition, setRecognition] = useState(null);
@@ -60,7 +62,7 @@ const AudioRecorder = ({ sessionId = 'audio_session' }) => {
 
   const sendToBackend = (text, confidence) => {
     if (!text) return;
-    axios.post('http://localhost:8000/caption', {
+    axios.post(API_BASE_URL + '/caption', {
       text,
       sessionId,
       lang: 'en',

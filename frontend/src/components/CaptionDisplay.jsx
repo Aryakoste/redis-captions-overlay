@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { translateText } from '../api';
 
+const API_BASE_URL = import.meta.env.API_BASE_URL;
+
 const CaptionDisplay = ({ sessionId, onNewCaption, style }) => {
   const [captions, setCaptions] = useState([]);
   const [connectionStatus, setConnectionStatus] = useState('Disconnected');
@@ -20,7 +22,7 @@ const CaptionDisplay = ({ sessionId, onNewCaption, style }) => {
   const connectWebSocket = () => {
     try {
       console.log('🔗 Connecting to WebSocket...');
-      const websocket = new WebSocket('ws://localhost:8000');
+      const websocket = new WebSocket('wss://redis-captions-overlay.onrender.com');
       setWs(websocket);
 
       websocket.onopen = () => {

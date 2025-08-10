@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { searchCaptions, searchKnowledge } from '../api';
 
+const API_BASE_URL = import.meta.env.API_BASE_URL;
+
 const SearchComponent = () => {
   const [searchType, setSearchType] = useState('captions');
   const [query, setQuery] = useState('');
@@ -21,7 +23,7 @@ const SearchComponent = () => {
 
   const fetchDebugInfo = async () => {
     try {
-      const response = await fetch('http://localhost:8000/debug/search');
+      const response = await fetch(API_BASE_URL + '/debug/search');
       const data = await response.json();
       setDebugInfo(data);
     } catch (error) {
