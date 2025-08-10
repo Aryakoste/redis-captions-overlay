@@ -10,10 +10,10 @@ services:
       - key: REDIS_URL
         fromService:
           type: redis
-          name: app-redis
+          name: redis-instance
           property: connectionString
       - key: PORT
-        value: "10000"
+        value: "6379"
 
   - type: worker
     name: python-llm-worker
@@ -26,12 +26,11 @@ services:
       - key: REDIS_URL
         fromService:
           type: redis
-          name: app-redis
+          name: redis-instance
           property: connectionString
       - key: PYTHONUNBUFFERED
         value: "1"
 
 databases:
-  # 3. Redis (Key Value)
-  - name: app-redis
+  - name: redis-instance
     plan: free
